@@ -1,0 +1,284 @@
+---
+title: "HW#4.3 Reproducible Data Analysis"
+author: "Vishnu Praveen"
+format: pdf
+---
+
+```{r}
+#| label: setup
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+```
+
+# Busiest Airports Analysis
+
+In this section, we analyze passenger traffic trends for six of the busiest airports from 2020 to 2025. The goal is to compare how passenger counts change over time and identify patterns across airports.
+
+```{r}
+#| echo: false
+
+airport_data <- tribble(
+  ~airport, ~code, ~year, ~passengers,
+
+  # ATL
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2020, 42800000,
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2021, 75600000,
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2022, 93700000,
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2023, 104700000,
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2024, 108000000,
+  "Hartsfield-Jackson Atlanta International Airport", "ATL", 2025, 110000000,
+
+  # FRA
+  "Frankfurt Airport", "FRA", 2020, 18700000,
+  "Frankfurt Airport", "FRA", 2021, 24800000,
+  "Frankfurt Airport", "FRA", 2022, 48700000,
+  "Frankfurt Airport", "FRA", 2023, 59300000,
+  "Frankfurt Airport", "FRA", 2024, 65000000,
+  "Frankfurt Airport", "FRA", 2025, 68000000,
+
+  # PKX
+  "Beijing Daxing International Airport", "PKX", 2020, 16000000,
+  "Beijing Daxing International Airport", "PKX", 2021, 25000000,
+  "Beijing Daxing International Airport", "PKX", 2022, 52000000,
+  "Beijing Daxing International Airport", "PKX", 2023, 64000000,
+  "Beijing Daxing International Airport", "PKX", 2024, 70000000,
+  "Beijing Daxing International Airport", "PKX", 2025, 75000000,
+
+  # ORD
+  "Chicago O'Hare International Airport", "ORD", 2020, 30500000,
+  "Chicago O'Hare International Airport", "ORD", 2021, 54600000,
+  "Chicago O'Hare International Airport", "ORD", 2022, 74600000,
+  "Chicago O'Hare International Airport", "ORD", 2023, 82000000,
+  "Chicago O'Hare International Airport", "ORD", 2024, 85000000,
+  "Chicago O'Hare International Airport", "ORD", 2025, 88000000,
+
+  # LAX
+  "Los Angeles International Airport", "LAX", 2020, 28300000,
+  "Los Angeles International Airport", "LAX", 2021, 48000000,
+  "Los Angeles International Airport", "LAX", 2022, 65800000,
+  "Los Angeles International Airport", "LAX", 2023, 75800000,
+  "Los Angeles International Airport", "LAX", 2024, 80000000,
+  "Los Angeles International Airport", "LAX", 2025, 83000000,
+
+  # DFW
+  "Dallas/Fort Worth International Airport", "DFW", 2020, 39200000,
+  "Dallas/Fort Worth International Airport", "DFW", 2021, 62300000,
+  "Dallas/Fort Worth International Airport", "DFW", 2022, 73500000,
+  "Dallas/Fort Worth International Airport", "DFW", 2023, 81000000,
+  "Dallas/Fort Worth International Airport", "DFW", 2024, 85000000,
+  "Dallas/Fort Worth International Airport", "DFW", 2025, 88000000
+)
+
+busiest_airports <- airport_data %>%
+  mutate(
+    passengers = as.numeric(passengers),
+    year = as.integer(year)
+  )
+```
+\newpage
+## Data Table 
+```{r}
+#| echo: false
+#| label: tbl-airports
+#| tbl-cap: "Passenger Traffic for Six Major Airports (2020-2025)"
+
+# Convert passenger values into millions for easier reading in the table
+busiest_airports %>%
+  mutate(
+    `Passengers (Millions)` = round(passengers / 1e6, 1) # convert to millions
+  ) %>%
+  select(
+    Airport = airport,
+    Code = code,
+    Year = year,
+    `Passengers (Millions)`
+  ) %>%
+  arrange(Airport, Year) %>% #sorts data
+  knitr::kable() # displays as a formatted table 
+```
+
+## Data Visualization
+
+```{r}
+#| echo: false
+
+# Create a line graph to show how passenger traffic changes over time
+busiest_airports %>%
+  ggplot(aes(x = year, y = passengers / 1e6, color = code)) + # Converts to millions
+  geom_line(linewidth = 1.2) +  # Draws a smooth line
+  labs(
+    title = "Passenger Traffic for Six Major Airports (2020-2025)",
+    x = "Year",
+    y = "Passengers (Millions)",
+    color = "Airport Code"
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 120, by = 20), # Sets axis interval
+    labels = function(x) paste0(x, " million")
+  ) +
+  theme_bw() #Black and white theme
+```
+
+## Analysis
+
+The table and plot together show clear trends in passenger traffic across the six airports from 2020 to 2025. 
+
+Overall, all airports experienced a significant drop in 2020, followed by steady recovery in the following years. Hartsfield-Jackson Atlanta International Airport (ATL) consistently has the highest passenger traffic, reaching over 100 million passengers by 2023 and continuing to grow.
+
+Airports such as Dallas/Fort Worth (DFW) and Chicago O'Hare (ORD) also show strong recovery and steady increases over time. In contrast, Frankfurt Airport (FRA) and Beijing Daxing (PKX) start at lower passenger levels but still demonstrate consistent growth.
+
+The visualization makes it easier to compare trends across airports, while the table provides exact values for each year. Together, they highlight both the recovery after 2020 and the differences in scale between airports.
+
+# Monte Carlo Simulation
+
+In this section, we estimate the area under a normal distribution curve using a Monte Carlo method.
+
+```{r}
+#| echo: false
+
+# Function to generate random points within a rectangle
+monteCarlo_points <- function(n, x_min, x_max, y_min, y_max) {
+  data.frame(
+    x = runif(n, x_min, x_max),   # random x values
+    y = runif(n, y_min, y_max)    # random y values
+  )
+}
+```{r}
+#| echo: false
+#| label: fig-montecarlo
+#| fig-cap: "Monte Carlo Simulation for Estimating Area Under Normal Curve at Different Sample Sizes"
+#| fig-alt: "Four scatter plots showing Monte Carlo simulations with increasing number of points"
+
+library(tidyverse)
+
+# Different sample sizes to show how accuracy improves
+sample_sizes <- c(100, 500, 1000, 5000)
+
+# Generates data for all sample sizes and combine into one dataset
+all_points <- map_dfr(sample_sizes, function(n) {
+  
+  # Generate random points
+  df <- monteCarlo_points(n, -4, 4, 0, 0.4)
+  
+  # Check if each point is under the normal curve
+  df$on_or_below <- df$y <= dnorm(df$x, 0, 1)
+  
+  df$n <- paste("n =", n)
+  
+  return(df)
+})
+
+# This is to estimate area using the largest sample size (5000)
+points_df <- all_points %>% filter(n == "n = 5000")
+prop_inside <- mean(points_df$on_or_below)
+
+# Area of rectangle = (8 * 0.4)
+area_estimate <- prop_inside * 8 * 0.4
+
+# Create plot with 4 subplots
+ggplot(all_points, aes(x, y, color = on_or_below)) +
+  geom_point(size = 0.8) +                     # plot random points
+  stat_function(fun = dnorm, color = "black") + 
+  facet_wrap(~ n) +                            # This create 4 subplots
+  labs(
+    title = "Monte Carlo Numerical Integration",
+    x = "x",
+    y = "y"
+  ) +
+  theme_bw()
+```
+\newpage
+# Planning and Prompting GenAI Tools
+
+## Plan for Data Wrangling and Visualization
+
+For this part, I created a plan for how I would approach working with a dataset and building a visualization. My goal was to make sure the data was clean and that the final graph clearly showed useful information.
+
+First, I would look at the dataset and identify which variables are important for the analysis. Then, I would check for any missing values or inconsistencies and clean the data if needed. After that, I would decide on the best type of visualization depending on the data, such as a scatter plot or line graph.
+
+I also planned to make sure the visualization is easy to understand by adding clear axis labels, a descriptive title, and using color to highlight differences or patterns in the data.
+
+## Plan-Based Prompt
+
+Using this plan, I wrote a more detailed prompt for a GenAI tool:
+
+"Given a dataset, explain how to clean the data and create a clear and effective visualization. Include steps for selecting variables, handling missing data, and choosing an appropriate type of graph. Also explain how to label and format the visualization."
+
+The response I got was structured and walked through each step clearly, which matched closely with my plan.
+
+## Generic Prompt
+
+I also tried a more general prompt:
+
+"How do I create a good data visualization?"
+
+This response was more general and gave broad advice, like choosing the right chart type and keeping the design simple.
+
+## Comparison of Responses
+
+The plan-based prompt was more helpful because it gave specific steps that I could actually follow. It focused on things like cleaning the data and choosing the right variables, which made it more practical.
+
+On the other hand, the generic prompt was useful for general ideas but didn’t go into as much detail. It didn’t fully explain how to carry out each step.
+
+Overall, this showed me that being more specific when writing prompts leads to better and more useful results.
+
+\newpage
+## Reflection
+Throughout these units, I learned that data analysis is not just about writing code, but about following a clear and structured process. The Plan-Code-Improve-Polish (PCIP) system changed how I approach problems. Instead of starting with code right away, I now understand the importance of planning by identifying the goal, what I need, and the steps to take. Then I can write the code, test it, and improve it to make it clearer and more effective.
+
+I also learned how to create better data visualizations. In this assignment, I worked with passenger traffic data for six major airports from 2020 to 2025. I organized the data into a table and created a line graph to show how passenger counts changed over time. This helped me see patterns across airports and understand how visualizations can make trends easier to interpret compared to just looking at raw data.
+
+Another important thing I learned is how to use Quarto to make my work reproducible and organized. By combining my code, results, and explanations into one document, I was able to clearly explain what I did in each section. This made my analysis easier to follow and more professional.
+
+I also applied these ideas in the Monte Carlo numerical integration section. I generated random points and used them to estimate the area under a normal distribution curve. This helped me understand how simulations can be used to approximate values and how randomness can be applied in data analysis.
+
+Finally, I learned that writing clean and organized code is very important. Keeping my code structured and making sure everything is clearly labeled made it easier to understand my own work and explain it to others.
+
+Overall, this assignment helped me better understand how planning, coding, and improving all work together. I now focus more on organizing my work, explaining my results clearly, and making sure my analysis is easy to follow.
+
+\newpage
+# Code Appendix
+
+```{r}
+#| label: codeAppend
+#| ref-label: !expr knitr::all_labels()
+#| echo: true
+#| eval: false
+```
+
+\newpage
+
+# GenAI Usage Appendix
+
+## Tool Used  
+ChatGPT (OpenAI, GPT-5.3)
+
+## Date of Use  
+April 2026
+
+## Where GenAI Was Used  
+
+I used GenAI to help improve clarity, grammar, and organization of written explanations, as well as to better understand assignment expectations.
+
+## Example Prompts  
+
+Some example prompts used include:
+
+- “Can you help me improve the clarity of this explanation?”  
+- “Does this paragraph sound clear and professional?”  
+- “How can I better describe what this graph is showing?”  
+
+Follow-up prompts included asking for simpler wording and more concise phrasing.
+
+## Summary of GenAI Responses  
+
+The responses mainly focused on:
+
+- Suggesting clearer sentence structure  
+- Improving grammar and readability  
+- Providing general advice on organizing explanations  
+
+The suggestions were reviewed and edited before being included in the final document.
